@@ -1,0 +1,489 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>손맛분식 고객응대 챗봇</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- FontAwesome Icons CDN -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Google Fonts Inter & Noto Sans KR -->
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        brand: {
+                            50: '#fff7ed',
+                            100: '#ffedd5',
+                            200: '#fed7aa',
+                            300: '#fdba74',
+                            400: '#fb923c',
+                            500: '#f97316',
+                            600: '#ea580c',
+                            700: '#c2410c',
+                            800: '#9a3412',
+                            900: '#7c2d12',
+                        }
+                    },
+                    fontFamily: {
+                        sans: ['Noto Sans KR', 'sans-serif'],
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        /* Custom scrollbar for chat window */
+        .chat-scroll::-webkit-scrollbar {
+            width: 6px;
+        }
+        .chat-scroll::-webkit-scrollbar-track {
+            background: #fff7ed;
+        }
+        .chat-scroll::-webkit-scrollbar-thumb {
+            background-color: #fdba74;
+            border-radius: 9999px;
+        }
+        /* Typing animation dots */
+        @keyframes pulse-dot {
+            0%, 100% { opacity: 0.3; transform: scale(0.8); }
+            50% { opacity: 1; transform: scale(1.1); }
+        }
+        .dot-1 { animation: pulse-dot 1.2s infinite 0s; }
+        .dot-2 { animation: pulse-dot 1.2s infinite 0.2s; }
+        .dot-3 { animation: pulse-dot 1.2s infinite 0.4s; }
+    </style>
+</head>
+<body class="bg-amber-100/60 font-sans antialiased text-slate-800 min-h-screen flex justify-center items-center p-0 md:p-4">
+
+    <!-- Main Outer Container -->
+    <div class="w-full max-w-md h-[100vh] md:h-[840px] bg-white md:rounded-3xl shadow-2xl flex flex-col overflow-hidden border border-orange-200/80 relative">
+        
+        <!-- Header Section -->
+        <header class="bg-gradient-to-r from-orange-500 via-brand-500 to-amber-500 text-white px-5 py-4 shadow-md flex-shrink-0 z-10">
+            <div class="flex items-center justify-between">
+                <div class="flex items-center space-x-3">
+                    <div class="w-11 h-11 bg-white/20 backdrop-blur-md rounded-2xl flex items-center justify-center border border-white/30 text-white shadow-inner">
+                        <i class="fa-solid fa-store text-xl"></i>
+                    </div>
+                    <div>
+                        <div class="flex items-center space-x-1.5">
+                            <h1 class="font-bold text-lg leading-tight tracking-tight">손맛분식</h1>
+                            <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold bg-emerald-500 text-white shadow-sm">
+                                <span class="w-1.5 h-1.5 bg-white rounded-full mr-1 animate-pulse"></span> 영업중
+                            </span>
+                        </div>
+                        <p class="text-xs text-orange-100 mt-0.5 flex items-center gap-1">
+                            <i class="fa-solid fa-location-dot text-amber-200"></i> 달빛시장 3번 골목
+                        </p>
+                    </div>
+                </div>
+                <button onclick="resetChat()" title="대화 초기화" class="p-2 text-orange-100 hover:text-white hover:bg-white/10 rounded-xl transition-all active:scale-95">
+                    <i class="fa-solid fa-rotate-right text-base"></i>
+                </button>
+            </div>
+
+            <!-- Business Hours Notice Banner -->
+            <div class="mt-3 pt-2.5 border-t border-white/20 flex items-center justify-between text-xs text-orange-50">
+                <div class="flex items-center gap-1.5">
+                    <i class="fa-regular fa-clock text-amber-200"></i>
+                    <span>평일 10:00~20:00 | 토요일 10:00~21:00</span>
+                </div>
+                <span class="bg-orange-700/40 text-amber-200 px-2 py-0.5 rounded text-[11px] font-medium">일요일 휴무</span>
+            </div>
+        </header>
+
+        <!-- Top Quick Question Action Buttons (4 Buttons Required) -->
+        <div class="bg-amber-50/80 px-3 py-2.5 border-b border-orange-100 flex-shrink-0 shadow-inner">
+            <p class="text-[11px] font-bold text-brand-700 mb-1.5 px-1 flex items-center gap-1">
+                <i class="fa-solid fa-bolt text-amber-500"></i> 자주 묻는 질문 (클릭)
+            </p>
+            <div class="grid grid-cols-2 gap-1.5" id="quickButtonsContainer">
+                <button onclick="sendQuickQuestion('몇 시까지 하세요?')" class="text-left bg-white border border-orange-200/90 hover:bg-orange-50 hover:border-orange-300 text-xs text-slate-700 font-medium px-2.5 py-2 rounded-xl shadow-sm transition-all duration-150 active:scale-[0.98] truncate flex items-center gap-1.5">
+                    <span class="text-orange-500">🕒</span> <span class="truncate">몇 시까지 하세요?</span>
+                </button>
+                <button onclick="sendQuickQuestion('대표 메뉴가 뭐예요?')" class="text-left bg-white border border-orange-200/90 hover:bg-orange-50 hover:border-orange-300 text-xs text-slate-700 font-medium px-2.5 py-2 rounded-xl shadow-sm transition-all duration-150 active:scale-[0.98] truncate flex items-center gap-1.5">
+                    <span class="text-orange-500">🍲</span> <span class="truncate">대표 메뉴가 뭐예요?</span>
+                </button>
+                <button onclick="sendQuickQuestion('온누리상품권 되나요?')" class="text-left bg-white border border-orange-200/90 hover:bg-orange-50 hover:border-orange-300 text-xs text-slate-700 font-medium px-2.5 py-2 rounded-xl shadow-sm transition-all duration-150 active:scale-[0.98] truncate flex items-center gap-1.5">
+                    <span class="text-orange-500">💳</span> <span class="truncate">온누리상품권 되나요?</span>
+                </button>
+                <button onclick="sendQuickQuestion('포장이나 배달 되나요?')" class="text-left bg-white border border-orange-200/90 hover:bg-orange-50 hover:border-orange-300 text-xs text-slate-700 font-medium px-2.5 py-2 rounded-xl shadow-sm transition-all duration-150 active:scale-[0.98] truncate flex items-center gap-1.5">
+                    <span class="text-orange-500">🛍️</span> <span class="truncate">포장이나 배달 되나요?</span>
+                </button>
+            </div>
+        </div>
+
+        <!-- Chat Content Scroll Area -->
+        <main id="chatWindow" class="flex-1 overflow-y-auto p-4 space-y-4 chat-scroll bg-gradient-to-b from-orange-50/30 to-amber-50/50">
+            <!-- Welcome Bot Message -->
+            <div class="flex items-start space-x-2.5">
+                <div class="w-8 h-8 rounded-full bg-orange-500 text-white flex items-center justify-center flex-shrink-0 text-sm shadow-sm font-bold">
+                    손
+                </div>
+                <div class="max-w-[82%]">
+                    <div class="flex items-baseline space-x-1 mb-1">
+                        <span class="text-xs font-semibold text-slate-700">손맛분식 도우미</span>
+                        <span class="text-[10px] text-slate-400" id="initTime"></span>
+                    </div>
+                    <div class="bg-white border border-orange-100 p-3.5 rounded-2xl rounded-tl-none shadow-sm text-sm text-slate-800 leading-relaxed">
+                        안녕하세요! 달빛시장 3번 골목 맛집 <strong class="text-brand-600">손맛분식</strong>입니다. 🧡<br><br>
+                        영업시간, 메뉴, 결제 수단 등 궁금하신 내용을 물어보시거나 상단의 자주 묻는 질문 버튼을 눌러주세요!
+                    </div>
+                </div>
+            </div>
+        </main>
+
+        <!-- Typing Indicator (Hidden by default) -->
+        <div id="typingIndicator" class="hidden px-4 py-1.5 bg-transparent flex items-center space-x-2">
+            <div class="w-7 h-7 rounded-full bg-orange-400 text-white flex items-center justify-center text-xs font-bold">손</div>
+            <div class="bg-white border border-orange-100 px-3 py-2 rounded-2xl rounded-tl-none shadow-sm flex items-center space-x-1">
+                <span class="w-1.5 h-1.5 bg-orange-400 rounded-full dot-1"></span>
+                <span class="w-1.5 h-1.5 bg-orange-400 rounded-full dot-2"></span>
+                <span class="w-1.5 h-1.5 bg-orange-400 rounded-full dot-3"></span>
+            </div>
+        </div>
+
+        <!-- Message Input Footer -->
+        <footer class="bg-white p-3 border-t border-orange-100 flex-shrink-0">
+            <form id="chatForm" onsubmit="handleUserSubmit(event)" class="flex items-center space-x-2">
+                <div class="relative flex-1">
+                    <input 
+                        type="text" 
+                        id="userInput" 
+                        placeholder="궁금한 내용을 입력하세요... (예: 주차)" 
+                        autocomplete="off"
+                        class="w-full bg-orange-50/60 border border-orange-200 text-slate-800 text-sm rounded-2xl px-4 py-3 pr-9 focus:outline-none focus:ring-2 focus:ring-orange-400 focus:bg-white transition-all placeholder:text-slate-400"
+                    >
+                    <button 
+                        type="button" 
+                        onclick="clearInput()" 
+                        id="clearBtn"
+                        class="hidden absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 text-xs p-1"
+                    >
+                        <i class="fa-solid fa-circle-xmark"></i>
+                    </button>
+                </div>
+                <button 
+                    type="submit" 
+                    id="sendBtn"
+                    class="bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600 text-white rounded-2xl px-4 py-3 shadow-md transition-all active:scale-95 flex items-center justify-center space-x-1 font-medium text-sm flex-shrink-0"
+                >
+                    <span>전송</span>
+                    <i class="fa-solid fa-paper-plane text-xs ml-0.5"></i>
+                </button>
+            </form>
+            <div class="text-[10px] text-slate-400 text-center mt-2">
+                달빛시장 3번 골목 손맛분식 고객안내 시스템
+            </div>
+        </footer>
+    </div>
+
+    <script>
+        /*
+         * FAQ Data Array (Total 10 items)
+         * Strictly following store info: 손맛분식 / 달빛시장 3번 골목 / 평일 10~20시, 일요일 휴무
+         */
+        const FAQ_DATABASE = [
+            {
+                id: 1,
+                keywords: ["몇시", "몇 시", "언제", "영업시간", "운영시간", "문닫는시간", "문여는시간", "휴무", "일요일"],
+                question: "몇 시까지 하세요? / 언제까지 해요? / 영업시간",
+                answer: "평일은 10시부터 20시까지, 토요일은 21시까지입니다. 일요일은 쉽니다."
+            },
+            {
+                id: 2,
+                keywords: ["어디", "위치", "주소", "찾아가", "길", "골목", "어떻게 가", "달빛시장"],
+                question: "가게 위치가 어디인가요?",
+                answer: "달빛시장 3번 골목 중앙 고객쉼터 맞은편에 위치해 있습니다."
+            },
+            {
+                id: 3,
+                keywords: ["메뉴", "대표", "맛있는", "추천", "얼마", "가격", "떡볶이", "튀김", "순대", "김밥"],
+                question: "대표 메뉴와 가격이 어떻게 되나요?",
+                answer: "대표 메뉴는 쌀떡볶이(4,000원), 모둠튀김(4,500원), 수제순대(4,500원), 원조김밥(3,500원)입니다."
+            },
+            {
+                id: 4,
+                keywords: ["온누리", "상품권", "제로페이", "카드", "결제", "지역화폐", "카카오페이"],
+                question: "온누리상품권이나 제로페이 사용이 가능한가요?",
+                answer: "네, 지류/모바일 온누리상품권, 제로페이, 카카오페이, 카드 결제 모두 가능합니다."
+            },
+            {
+                id: 5,
+                keywords: ["포장", "배달", "테이크아웃", "싸가", "싸갈"],
+                question: "포장이나 배달이 되나요?",
+                answer: "전 메뉴 포장 가능하며, 매장 방문 포장 시 따뜻하게 보온 포장해 드립니다. 배달은 진행하지 않습니다."
+            },
+            {
+                id: 6,
+                keywords: ["주차", "주차장", "차", "공영주차장"],
+                question: "주차장이 따로 있나요?",
+                answer: "달빛시장 공영주차장을 이용해 주시면 됩니다. 1만원 이상 구매 시 1시간 무료 주차권을 제공합니다."
+            },
+            {
+                id: 7,
+                keywords: ["매운", "맵기", "맵냐", "매워", "매운가요", "아이"],
+                question: "떡볶이가 많이 매운가요?",
+                answer: "남녀노소 맛있게 즐길 수 있는 달콤매콤한 학교 앞 떡볶이 스타일입니다. 아주 매운 편은 아닙니다."
+            },
+            {
+                id: 8,
+                keywords: ["단체", "예약", "주문", "간식", "미리"],
+                question: "단체 주문이나 예약이 가능한가요?",
+                answer: "하루 전 전화나 방문으로 예약 가능하며, 단체 간식 주문 시 시간에 맞추어 따뜻하게 준비해 드립니다."
+            },
+            {
+                id: 9,
+                keywords: ["원산지", "국산", "국내산", "재료", "돼지고기", "쌀"],
+                question: "재료 원산지는 어떻게 되나요?",
+                answer: "떡볶이 쌀, 야채, 순대(돼지고기)는 모두 100% 국내산 재료를 사용하고 있습니다."
+            },
+            {
+                id: 10,
+                keywords: ["먹고", "테이블", "식사", "자리", "앉아서"],
+                question: "매장에서 먹고 갈 수 있나요?",
+                answer: "매장 내에 4인용 테이블 3개와 바 좌석이 준비되어 있어 편하게 드시고 가실 수 있습니다."
+            }
+        ];
+
+        // Fallback Response (Strict constraint: do not invent non-FAQ content)
+        const FALLBACK_RESPONSE = "확인이 어렵습니다. 사장님께 직접 여쭤봐 주세요";
+
+        // Initialize elements and timestamps
+        document.addEventListener('DOMContentLoaded', () => {
+            document.getElementById('initTime').textContent = getCurrentTime();
+            
+            const inputEl = document.getElementById('userInput');
+            const clearBtn = document.getElementById('clearBtn');
+            
+            inputEl.addEventListener('input', () => {
+                if (inputEl.value.trim().length > 0) {
+                    clearBtn.classList.remove('hidden');
+                } else {
+                    clearBtn.classList.add('hidden');
+                }
+            });
+        });
+
+        function getCurrentTime() {
+            const now = new Date();
+            let hours = now.getHours();
+            let minutes = now.getMinutes();
+            const ampm = hours >= 12 ? '오후' : '오전';
+            hours = hours % 12;
+            hours = hours ? hours : 12; 
+            minutes = minutes < 10 ? '0' + minutes : minutes;
+            return `${ampm} ${hours}:${minutes}`;
+        }
+
+        function clearInput() {
+            const inputEl = document.getElementById('userInput');
+            inputEl.value = '';
+            document.getElementById('clearBtn').classList.add('hidden');
+            inputEl.focus();
+        }
+
+        /**
+         * Clean string for comparison by removing whitespace and punctuation
+         */
+        function normalizeText(text) {
+            return text.replace(/[^가-힣a-zA-Z0-9]/g, '').toLowerCase();
+        }
+
+        /**
+         * Search for best matching FAQ based on keyword hits and character bigram similarity
+         */
+        function findBestFAQMatch(query) {
+            const normalizedQuery = normalizeText(query);
+            if (!normalizedQuery) return null;
+
+            let bestMatch = null;
+            let highestScore = 0;
+
+            FAQ_DATABASE.forEach(faq => {
+                let score = 0;
+
+                // 1. Check keyword triggers
+                faq.keywords.forEach(keyword => {
+                    const normKeyword = normalizeText(keyword);
+                    if (normalizedQuery.includes(normKeyword)) {
+                        score += 3.0; // High weight for exact keyword hit
+                    }
+                });
+
+                // 2. Check overlap with FAQ question title
+                const normQuestion = normalizeText(faq.question);
+                if (normalizedQuery.includes(normQuestion) || normQuestion.includes(normalizedQuery)) {
+                    score += 4.0;
+                }
+
+                // 3. Simple Bigram similarity calculation
+                const queryBigrams = getBigrams(normalizedQuery);
+                const questionBigrams = getBigrams(normQuestion);
+                let matchCount = 0;
+
+                queryBigrams.forEach(bg => {
+                    if (questionBigrams.has(bg)) {
+                        matchCount++;
+                    }
+                });
+
+                if (queryBigrams.size > 0) {
+                    const bigramScore = (matchCount / queryBigrams.size) * 2.0;
+                    score += bigramScore;
+                }
+
+                if (score > highestScore) {
+                    highestScore = score;
+                    bestMatch = faq;
+                }
+            });
+
+            // Threshold score check to ensure accuracy
+            if (highestScore >= 1.2 && bestMatch) {
+                return bestMatch.answer;
+            }
+
+            return null;
+        }
+
+        function getBigrams(str) {
+            const bigrams = new Set();
+            for (let i = 0; i < str.length - 1; i++) {
+                bigrams.add(str.substring(i, i + 2));
+            }
+            return bigrams;
+        }
+
+        function sendQuickQuestion(questionText) {
+            processUserQuery(questionText);
+        }
+
+        function handleUserSubmit(e) {
+            e.preventDefault();
+            const inputEl = document.getElementById('userInput');
+            const query = inputEl.value.trim();
+            if (!query) return;
+
+            processUserQuery(query);
+            clearInput();
+        }
+
+        function processUserQuery(userText) {
+            // Append User Message Bubble
+            appendUserMessage(userText);
+
+            // Show Typing Indicator
+            showTypingIndicator();
+
+            // Simulate natural delay for bot response
+            setTimeout(() => {
+                hideTypingIndicator();
+
+                // Find match or fallback
+                const matchedAnswer = findBestFAQMatch(userText);
+                const finalAnswer = matchedAnswer ? matchedAnswer : FALLBACK_RESPONSE;
+
+                appendBotMessage(finalAnswer);
+            }, 500);
+        }
+
+        function appendUserMessage(text) {
+            const chatWindow = document.getElementById('chatWindow');
+            const timeStr = getCurrentTime();
+
+            const userHtml = `
+                <div class="flex items-start justify-end space-x-2.5">
+                    <div class="max-w-[82%]">
+                        <div class="flex items-baseline justify-end space-x-1 mb-1">
+                            <span class="text-[10px] text-slate-400">${timeStr}</span>
+                            <span class="text-xs font-semibold text-slate-700">손님</span>
+                        </div>
+                        <div class="bg-gradient-to-r from-orange-500 to-amber-500 text-white p-3.5 rounded-2xl rounded-tr-none shadow-sm text-sm leading-relaxed">
+                            ${escapeHtml(text)}
+                        </div>
+                    </div>
+                </div>
+            `;
+
+            chatWindow.insertAdjacentHTML('beforeend', userHtml);
+            scrollToBottom();
+        }
+
+        function appendBotMessage(text) {
+            const chatWindow = document.getElementById('chatWindow');
+            const timeStr = getCurrentTime();
+
+            const botHtml = `
+                <div class="flex items-start space-x-2.5">
+                    <div class="w-8 h-8 rounded-full bg-orange-500 text-white flex items-center justify-center flex-shrink-0 text-sm shadow-sm font-bold">
+                        손
+                    </div>
+                    <div class="max-w-[82%]">
+                        <div class="flex items-baseline space-x-1 mb-1">
+                            <span class="text-xs font-semibold text-slate-700">손맛분식 도우미</span>
+                            <span class="text-[10px] text-slate-400">${timeStr}</span>
+                        </div>
+                        <div class="bg-white border border-orange-100 p-3.5 rounded-2xl rounded-tl-none shadow-sm text-sm text-slate-800 leading-relaxed">
+                            ${escapeHtml(text)}
+                        </div>
+                    </div>
+                </div>
+            `;
+
+            chatWindow.insertAdjacentHTML('beforeend', botHtml);
+            scrollToBottom();
+        }
+
+        function showTypingIndicator() {
+            const indicator = document.getElementById('typingIndicator');
+            indicator.classList.remove('hidden');
+            scrollToBottom();
+        }
+
+        function hideTypingIndicator() {
+            const indicator = document.getElementById('typingIndicator');
+            indicator.classList.add('hidden');
+        }
+
+        function scrollToBottom() {
+            const chatWindow = document.getElementById('chatWindow');
+            chatWindow.scrollTop = chatWindow.scrollHeight;
+        }
+
+        function resetChat() {
+            const chatWindow = document.getElementById('chatWindow');
+            chatWindow.innerHTML = `
+                <div class="flex items-start space-x-2.5">
+                    <div class="w-8 h-8 rounded-full bg-orange-500 text-white flex items-center justify-center flex-shrink-0 text-sm shadow-sm font-bold">
+                        손
+                    </div>
+                    <div class="max-w-[82%]">
+                        <div class="flex items-baseline space-x-1 mb-1">
+                            <span class="text-xs font-semibold text-slate-700">손맛분식 도우미</span>
+                            <span class="text-[10px] text-slate-400">${getCurrentTime()}</span>
+                        </div>
+                        <div class="bg-white border border-orange-100 p-3.5 rounded-2xl rounded-tl-none shadow-sm text-sm text-slate-800 leading-relaxed">
+                            안녕하세요! 달빛시장 3번 골목 맛집 <strong class="text-brand-600">손맛분식</strong>입니다. 🧡<br><br>
+                            영업시간, 메뉴, 결제 수단 등 궁금하신 내용을 물어보시거나 상단의 자주 묻는 질문 버튼을 눌러주세요!
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
+
+        function escapeHtml(str) {
+            return str
+                .replace(/&/g, "&amp;")
+                .replace(/</g, "&lt;")
+                .replace(/>/g, "&gt;")
+                .replace(/"/g, "&quot;")
+                .replace(/'/g, "&#039;");
+        }
+    </script>
+</body>
+</html>
